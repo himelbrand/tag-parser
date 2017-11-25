@@ -132,12 +132,12 @@
 
 
 ;Tests of __begin__
-(assert-equal "begin F15.1"  (parse '(begin (if x y (begin #t #f)) (begin 3 4 5) (begin (lambda (x) (begin #t #f))))) '(seq ((if3 (var x) (var y) (seq ((const #t) (const #f)))) (const 3) (const 4) (const 5) (lambda-simple (x) (seq ((const #t) (const #f)))))))
-(assert-equal "begin F15.2"  (parse '(begin (begin a b c))) '(seq ((var a) (var b) (var c))))
-(assert-equal "begin F15.3"  (parse '(begin 1 (begin 2) (lambda (x) (+ x x) (+ x 1)))) '(seq ((const 1) (const 2) (lambda-simple (x) (seq ((applic (var +) ((var x) (var x))) (applic (var +) ((var x) (const 1)))))))))
-(assert-equal "begin F15.4" (parse '(begin y (begin x z))) '(seq ((var y) (var x) (var z))))
-(assert-equal "begin F15.5" (parse '(lambda () (let ((x (begin y (begin x z)))) (begin '() '() (if x y (begin x y z)))))) '(lambda-simple () (applic (lambda-simple (x) (seq ((const ()) (const ()) (if3 (var x) (var y) (seq ((var x) (var y) (var z))))))) ((seq ((var y) (var x) (var z)))))))
-(assert-equal "begin F15.6"  (parse '(begin (begin 1 2 (begin 3 4 (begin 5 6) 7)) 8)) '(seq ((const 1) (const 2) (const 3) (const 4) (const 5) (const 6) (const 7) (const 8))))
+; (assert-equal "begin F15.1"  (parse '(begin (if x y (begin #t #f)) (begin 3 4 5) (begin (lambda (x) (begin #t #f))))) '(seq ((if3 (var x) (var y) (seq ((const #t) (const #f)))) (const 3) (const 4) (const 5) (lambda-simple (x) (seq ((const #t) (const #f)))))))
+; (assert-equal "begin F15.2"  (parse '(begin (begin a b c))) '(seq ((var a) (var b) (var c))))
+; (assert-equal "begin F15.3"  (parse '(begin 1 (begin 2) (lambda (x) (+ x x) (+ x 1)))) '(seq ((const 1) (const 2) (lambda-simple (x) (seq ((applic (var +) ((var x) (var x))) (applic (var +) ((var x) (const 1)))))))))
+; (assert-equal "begin F15.4" (parse '(begin y (begin x z))) '(seq ((var y) (var x) (var z))))
+; (assert-equal "begin F15.5" (parse '(lambda () (let ((x (begin y (begin x z)))) (begin '() '() (if x y (begin x y z)))))) '(lambda-simple () (applic (lambda-simple (x) (seq ((const ()) (const ()) (if3 (var x) (var y) (seq ((var x) (var y) (var z))))))) ((seq ((var y) (var x) (var z)))))))
+; (assert-equal "begin F15.6"  (parse '(begin (begin 1 2 (begin 3 4 (begin 5 6) 7)) 8)) '(seq ((const 1) (const 2) (const 3) (const 4) (const 5) (const 6) (const 7) (const 8))))
 
 
 (display "Number of failed tests  ")

@@ -58,8 +58,7 @@ unquote-splicing quote set!))
 		  						[else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp))))]
 		  					))
 		  ((myQQ? sexp) (let ((expend (expand-qq (cadr sexp))))
-		  				(display sexp)
-		  				(display expend)
+		  				(parse expend)
 
 		  ))
 
