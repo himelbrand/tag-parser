@@ -35,7 +35,7 @@ unquote-splicing quote set!))
 		  ((myMITDefine? sexp) `(define ,(parse (car (cadr sexp))) ,(parse `(lambda ,(cdr (cadr sexp))  ,@(cddr sexp)))))
 		  ((mySet!? sexp) `(set ,(parse (cadr sexp)) ,(parse (caddr sexp)) ))
 		  ((myAplication? sexp) `(applic ,(parse (car sexp)) ,(map parse (cdr sexp))))
-		  ((myBegin? sexp) (cond ;((= (length sexp) 1) (list 'const (if #f #f)))
+		  ((myBegin? sexp) (cond ((= (length sexp) 1) (list 'const (if #f #f)))
 		  						 ((= (length (cdr sexp)) 1) (parse (cadr sexp)))
 		  						 (else `(seq 
 		  						 	,(letrec ((fun (lambda (l) 
@@ -174,7 +174,7 @@ unquote-splicing quote set!))
 
 
 (define (myDefine? exp)
-		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))));;Changed define - allowed nested defines in this assignment
+		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp)) (parse (caddr exp))));;Changed define - allowed nested defines in this assignment
 
 (define (myMITDefine? exp)
 		(and (list? exp)
@@ -197,7 +197,7 @@ unquote-splicing quote set!))
 
 (define (myBegin? exp)
 		(and (list? exp)
-		(> (length exp) 1)
+		(>= (length exp) 1)
 		(eq? (car exp) 'begin)))
 
 (define (myLet? exp)
