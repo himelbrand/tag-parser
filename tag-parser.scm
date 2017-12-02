@@ -14,11 +14,11 @@ unquote-splicing quote set!))
 		  					  ((= (length sexp) 2) (parse (cadr sexp)))
 		  					  (else `(or ,(map parse (cdr sexp))))))
 
-		  ((myAnd? sexp) (cond [(= (length sexp) 2) (parse (cadr sexp))]
-		  					   [(= (length sexp) 1) (parse #t)]
-		  					 	[else (parse`(if ,(cadr sexp) ,(cond [(> (length (cdr sexp)) 2) `(and ,@(cddr sexp))]
-		  												   			 [(= (length (cdr sexp)) 2) (caddr sexp)])
-		  												   #f))]))
+		  ((myAnd? sexp) (cond ((= (length sexp) 2) (parse (cadr sexp)))
+		  					   ((= (length sexp) 1) (parse #t))
+		  					 	(else (parse`(if ,(cadr sexp) ,(cond ((> (length (cdr sexp)) 2) `(and ,@(cddr sexp)))
+		  												   			 ((= (length (cdr sexp)) 2) (caddr sexp)))
+		  												   #f)))))
 													
 		  ((myLambdaSimple? sexp) `(lambda-simple ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
 		  														 (parse `(begin ,@(cddr sexp)))
@@ -35,9 +35,9 @@ unquote-splicing quote set!))
 		  ((myMITDefine? sexp) `(define ,(parse (car (cadr sexp))) ,(parse `(lambda ,(cdr (cadr sexp))  ,@(cddr sexp)))))
 		  ((mySet!? sexp) `(set ,(parse (cadr sexp)) ,(parse (caddr sexp)) ))
 		  ((myAplication? sexp) `(applic ,(parse (car sexp)) ,(map parse (cdr sexp))))
-		  ((myBegin? sexp) (cond ;[(= (length sexp) 1) (list 'const (if #f #f))]
-		  						 [(= (length (cdr sexp)) 1) (parse (cadr sexp))]
-		  						 [else `(seq 
+		  ((myBegin? sexp) (cond ;((= (length sexp) 1) (list 'const (if #f #f)))
+		  						 ((= (length (cdr sexp)) 1) (parse (cadr sexp)))
+		  						 (else `(seq 
 		  						 	,(letrec ((fun (lambda (l) 
 		  						 			(fold-left (lambda (init exp) 
 		  											 (append init 
@@ -47,7 +47,7 @@ unquote-splicing quote set!))
 		  									'()
 		  									l))))
 		  						 (fun (cdr sexp)))
-		  						 )]))
+		  						 ))))
 		  						
 		  ((myLet? sexp) (parse `((lambda ,(map (lambda (pair) (car pair)) (cadr sexp)) ,@(cddr sexp)) ,@(map (lambda (pair) (cadr pair)) (cadr sexp)))))
 		  ((myLet*? sexp) (parse (if (< (length (cadr sexp)) 2)
@@ -56,9 +56,9 @@ unquote-splicing quote set!))
 		  ((myLetrec? sexp) (parse `(let ,(map (lambda (pair) (list (car pair) #f)) (cadr sexp)) 
 		  								 ,@(map (lambda (pair) `(set! ,(car pair) ,(cadr pair))) (cadr sexp))
 		  								   ((lambda () ,@(cddr sexp))))))
-		  ((myCond? sexp) (cond [(eq? (car (cadr sexp)) 'else) (parse `(begin ,@(cdr (cadr sexp))))]
-		  						[(eq? (length (cdr sexp)) 1)  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) '#f))]
-		  						[else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp))))]
+		  ((myCond? sexp) (cond ((eq? (car (cadr sexp)) 'else) (parse `(begin ,@(cdr (cadr sexp)))))
+		  						((eq? (length (cdr sexp)) 1)  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) '#f)))
+		  						(else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp)))))
 		  					))
 		  ((myQQ? sexp) (let ((expend (expand-qq (cadr sexp))))
 		  				(parse expend)
@@ -116,18 +116,19 @@ unquote-splicing quote set!))
 (define (myMITDefineOrDefine? exp)
 		(or (myMITDefine? exp) (myDefine? exp)))
 
-(define (myMITDefineOrDefineInLambda? exp)
-	
-		(or (myMITDefine? exp) (and (myDefine? exp) (not (equal? (cadr exp) (caddr exp))))))
+(define (myDefineInLambda? exp)
+	(and (myDefine? exp) (not (equal? (cadr exp) (caddr exp)))))
 (define (myCheckLambdaDefineOrder? exp)
-			(letrec ((fun (lambda (lst bool startWithDefine?)  ;;@@@@TODO : somthing is not good here above ok
-		  						(cond [(null? lst) bool]
-		  							  [(not startWithDefine?) (and bool (not (myMITDefineOrDefineInLambda? (car lst))) (fun (cdr lst) bool startWithDefine?))]
-		  							  [startWithDefine? (if (myMITDefineOrDefineInLambda? (car lst)) (fun (cdr lst) bool startWithDefine?) (fun (cdr lst) bool (not startWithDefine?)))] ))))
-		  							  ;;[else (and (myDefine? (car l)) (fun (cdr l) bool))]))))
-		  							  (display (myMITDefineOrDefineInLambda? (caddr exp)))
+			(letrec ((fun (lambda (lst bool startWithDefine?)
+		  						(cond ((null? lst) bool)
+		  							  ((not startWithDefine?) (and bool (not (myMITDefineOrDefine? (car lst))) (not (myDefineInLambda? (car lst))) (fun (cdr lst) bool startWithDefine?)))
+		  							  (startWithDefine? (if (myMITDefineOrDefine? (car lst)) 
+		  							  	(if (myDefineInLambda? (car lst))
+		  							  		(fun (cdr lst) bool startWithDefine?)
+		  							  		#f ) 
+		  							  	(fun (cdr lst) bool (not startWithDefine?)))) ))))		  							  
 				    (if(myMITDefineOrDefine? (caddr exp))
-				      (if (myMITDefineOrDefineInLambda? (caddr exp)) (fun (cdddr exp) #t #t) #f);; this is a good check
+				      (if (myDefineInLambda? (caddr exp)) (fun (cdddr exp) #t #t) #f)
 				  	  (fun (cdddr exp) #t #f))))
 
 		
@@ -139,15 +140,15 @@ unquote-splicing quote set!))
 				(fun lst '()))
 		)
 (define (myHasDuplicates? l)
-  (cond [(null? l) #f]
-  		[(and (list? l))(not (not (member (car l) (cdr l))))]
-  		[else (myHasDuplicates? (cdr l))]))
+  (cond ((null? l) #f)
+  		((and (list? l))(not (not (member (car l) (cdr l)))))
+  		(else (myHasDuplicates? (cdr l)))))
 
 (define (myAllVars? l)
-  (cond [(null? l) #t]
-  		[(and (not (pair? l))(myVar? l)) #t]
-  		[(myVar? (car l)) (myAllVars? (cdr l))]	
-  		[else #f]))
+  (cond ((null? l) #t)
+  		((and (not (pair? l))(myVar? l)) #t)
+  		((myVar? (car l)) (myAllVars? (cdr l)))	
+  		(else #f)))
 
 (define (myLambdaSimple? exp)
 	(and (list? exp) (eq? (car exp) 'lambda) (list? (cadr exp)) (> (length exp) 2)
@@ -173,7 +174,7 @@ unquote-splicing quote set!))
 
 
 (define (myDefine? exp)
-		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))))
+		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp)) (not (myMITDefineOrDefine? (caddr exp)))))
 
 (define (myMITDefine? exp)
 		(and (list? exp)
@@ -181,7 +182,7 @@ unquote-splicing quote set!))
 			 (eq? (car exp) 'define)
 			 (pair? (cadr exp))
 			 (fold-left (lambda (init varBool) (and init varBool)) #t (map (lambda(var) (myVar? var))  (cadr exp)))
-			 (not (myHasDuplicates? (cdadr exp)))
+			 (not (myHasDuplicates? (cdadr exp)));;TODO: nested defines?
 			))
 
 (define (mySet!? exp)
