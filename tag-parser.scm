@@ -43,12 +43,21 @@
 				ls
 			#f)))
 
-		((myLambdaOptional? sexp) `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
+		((myLambdaOptional? sexp) (let ((lo  `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
 			(parse `(begin ,@(cddr sexp)))
-		(parse (caddr sexp)))))			
-		((myLambdaVeriadic? sexp) `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
+		(parse (caddr sexp))))))
+		(if (and (list? lo) (> (length lo) 3) (= (length (filter (lambda (item)item ) (cdddr lo))) (length (cdddr lo))))
+				lo
+			#f)
+		))
+
+		((myLambdaVeriadic? sexp) (let ((lv `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
 			(parse `(begin ,@(cddr sexp)))
-		(parse (caddr sexp)))))
+		(parse (caddr sexp))))))
+				(if (and (list? lv) (> (length lv) 2) (= (length (filter (lambda (item)item ) (cddr lv))) (length (cddr lv))))
+				lv
+			#f)
+		))
 
 		((myDefine? sexp) 
 			(let ((varName (parse (cadr sexp)))
@@ -79,7 +88,7 @@
 			#f)))
 		((myBegin? sexp) (cond ((= (length sexp) 1) (list 'const (if #f #f)))
 			((= (length (cdr sexp)) 1) (parse (cadr sexp)))
-			(else `(seq 
+			(else (let ((seq `(seq 
 				,(letrec ((fun (lambda (l) 
 					(fold-left (lambda (init exp) 
 						(append init 
@@ -89,7 +98,11 @@
 					'()
 				l))))
 			(fun (cdr sexp)))
-			))))
+			)))
+			(if (and (list? seq) (= (length (filter (lambda(item)  item) (cadr seq))) (length (cadr seq))) )
+				seq
+				#f
+			)))))
 
 		((myLet? sexp) (parse `((lambda ,(map (lambda (pair) (car pair)) (cadr sexp)) ,@(cddr sexp)) ,@(map (lambda (pair) (cadr pair)) (cadr sexp)))))
 		((myLet*? sexp) (parse (if (< (length (cadr sexp)) 2)
@@ -195,14 +208,16 @@
 	))
 
 (define (myLambdaOptional? exp)
+
 	(and (list? exp) (eq? (car exp) 'lambda)
 		(pair? (cadr exp)) 
 		(not (list? (cadr exp))) 
 		(> (length exp) 2) 
 		(not (myHasDuplicates? (myImpToProper (cadr exp))))
-		(myAllVars? (cadr exp))
+		(myAllVars? (myImpToProper (cadr exp)))
 		(myCheckLambdaDefineOrder? exp)
-	))  
+	)
+)  
 
 (define (myLambdaVeriadic? exp)
 (and (list? exp) (eq? (car exp) 'lambda) (> (length exp) 2) (myVar? (cadr exp))(myCheckLambdaDefineOrder? exp)))  
