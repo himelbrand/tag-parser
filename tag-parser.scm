@@ -174,7 +174,7 @@ unquote-splicing quote set!))
 
 
 (define (myDefine? exp)
-		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp)) (not (myMITDefineOrDefine? (caddr exp)))))
+		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))));;Changed define - allowed nested defines in this assignment
 
 (define (myMITDefine? exp)
 		(and (list? exp)
