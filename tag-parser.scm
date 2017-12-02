@@ -58,7 +58,6 @@
 			#f)
 		))
 		((myMITDefine? sexp) 
-			(display "FFFF")
 			(let ((varName (parse (car (cadr sexp))))
 			(defenition (parse `(lambda ,(cdr (cadr sexp))  ,@(cddr sexp)))))
 			
@@ -220,10 +219,10 @@
 		(eq? (car exp) 'define)
 		(pair? (cadr exp))
 		(fold-left (lambda (init varBool) (and init varBool)) #t (map (lambda(var) (myVar? var))  (if (list? (cadr exp))
-			(begin (display "FFF")(cadr exp))
-			(begin (display "FFF")(myImpToProper (cadr exp)))
+			(cadr exp)
+			(myImpToProper (cdadr exp))
 		)))
-			 (not (myHasDuplicates? (cdadr exp)))
+			 (not (myHasDuplicates? (cddr exp)))
 			))
 
 (define (mySet!? exp)
