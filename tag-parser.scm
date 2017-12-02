@@ -25,9 +25,9 @@
 		((myOr? sexp) (cond ((= (length sexp) 1) (parse '#f))
 			((= (length sexp) 2) (parse (cadr sexp)))
 			(else (let ((orConds (map parse (cdr sexp))))
-				(if (> (length (filter (lambda(item) (not item)) orConds)) 0)
-					#f
-				`(or ,orConds))))))
+				(if (= (length (filter (lambda(item) item) orConds)) (length orConds))
+					`(or ,orConds)
+				#f)))))
 
 		((myAnd? sexp) (cond ((= (length sexp) 2) (parse (cadr sexp)))
 			((= (length sexp) 1) (parse #t))
@@ -43,39 +43,41 @@
 				ls
 			#f)))
 
-			((myLambdaOptional? sexp) `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
-				(parse `(begin ,@(cddr sexp)))
-			(parse (caddr sexp)))))			
-			((myLambdaVeriadic? sexp) `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
-				(parse `(begin ,@(cddr sexp)))
-			(parse (caddr sexp)))))
+		((myLambdaOptional? sexp) `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
+			(parse `(begin ,@(cddr sexp)))
+		(parse (caddr sexp)))))			
+		((myLambdaVeriadic? sexp) `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
+			(parse `(begin ,@(cddr sexp)))
+		(parse (caddr sexp)))))
 
 		((myDefine? sexp) 
 			(let ((varName (parse (cadr sexp)))
 			(defenition (parse (caddr sexp))))
 			(if(and varName defenition)
-			`(define ,varName ,defenition)
+				`(define ,varName ,defenition)
 			#f)
 		))
 		((myMITDefine? sexp) 
+			(display "FFFF")
 			(let ((varName (parse (car (cadr sexp))))
 			(defenition (parse `(lambda ,(cdr (cadr sexp))  ,@(cddr sexp)))))
+			
 			(if (and varName defenition)
 				`(define ,varName ,defenition)
 			#f)
 		))
 		((mySet!? sexp) 
 			(let ((varName (parse (cadr sexp)))
-					(newVal (parse (caddr sexp))))
+			(newVal (parse (caddr sexp))))
 			(if (and varName newVal)
 				`(set ,varName ,newVal)
-				#f)))
+			#f)))
 		((myAplication? sexp) 
 			(let ((funcName (parse (car sexp)))
-					(args (map parse (cdr sexp))))
-			(if (and funcName (> (length (filter (lambda(item) (not item)) orConds)) 0))
+			(args (map parse (cdr sexp))))
+			(if (and funcName (= (length (filter (lambda(item)  item) args)) (length args)))
 				`(applic ,funcName ,args)
-				#f)))
+			#f)))
 		((myBegin? sexp) (cond ((= (length sexp) 1) (list 'const (if #f #f)))
 			((= (length (cdr sexp)) 1) (parse (cadr sexp)))
 			(else `(seq 
@@ -97,25 +99,20 @@
 		((myLetrec? sexp) (parse `(let ,(map (lambda (pair) (list (car pair) #f)) (cadr sexp)) 
 			,@(map (lambda (pair) `(set! ,(car pair) ,(cadr pair))) (cadr sexp))
 		((lambda () ,@(cddr sexp))))))
-		((myCond? sexp) (cond ((eq? (car (cadr sexp)) 'else) (parse `(begin ,@(cdr (cadr sexp)))))
-			((eq? (length (cdr sexp)) 1)  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) '#f)))
-			(else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp)))))
-		))
-		((myQQ? sexp) (let ((expend (expand-qq (cadr sexp))))
-			(parse expend)
-
-		))
-
-		  	;;(parse `(if ,(car (cadr sexp)) ,(cadr (cadr sexp)) ,(if (= (length (cdr sexp)) 1)
-		  	;;																	  '#f
-		  	;;																	   `(if )
-		  	;;																   ) )))
-
-		  (else #f))
+		((myCond? sexp) 
+			(cond 
+				((eq? (car (cadr sexp)) 'else) (parse `(begin ,@(cdr (cadr sexp)))))
+				((eq? (length (cdr sexp)) 1)  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))))))
+				(else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp)))))
+			))
+		((myQQ? sexp) (display sexp) (let ((expend (expand-qq (cadr sexp))))
+		(parse expend)))
+	(else #f))
 )
 
 (define (myQQ? exp)
-	(and (eq? (car exp) 'quasiquote)
+	(and (pair? exp) 
+		(eq? (car exp) 'quasiquote)
 	(= (length exp) 2)))
 
 (define (flatten x)
@@ -174,8 +171,6 @@
 		(if (myDefineInLambda? (caddr exp)) (fun (cdddr exp) #t #t) #f)
 	(fun (cdddr exp) #t #f))))
 
-
-
 (define (myImpToProper lst)
 	(letrec ((fun (lambda (l templ)
 		(if (not (pair? l)) (append templ (list l)) 
@@ -217,14 +212,18 @@
 
 
 (define (myDefine? exp)
-		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))));;Changed define - allowed nested defines in this assignment
+		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))))
+
 (define (myMITDefine? exp)
 	(and (list? exp)
 		(> (length exp) 2)
 		(eq? (car exp) 'define)
 		(pair? (cadr exp))
-		(fold-left (lambda (init varBool) (and init varBool)) #t (map (lambda(var) (myVar? var))  (cadr exp)))
-			 (not (myHasDuplicates? (cdadr exp)));;TODO: nested defines?
+		(fold-left (lambda (init varBool) (and init varBool)) #t (map (lambda(var) (myVar? var))  (if (list? (cadr exp))
+			(begin (display "FFF")(cadr exp))
+			(begin (display "FFF")(myImpToProper (cadr exp)))
+		)))
+			 (not (myHasDuplicates? (cdadr exp)))
 			))
 
 (define (mySet!? exp)
