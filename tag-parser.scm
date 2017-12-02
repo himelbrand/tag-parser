@@ -35,16 +35,20 @@
 			((= (length (cdr sexp)) 2) (caddr sexp)))
 		#f)))))
 
-		((myLambdaSimple? sexp) `(lambda-simple ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
-			(parse `(begin ,@(cddr sexp)))
-		(parse (caddr sexp)))))
+		((myLambdaSimple? sexp) 
+			(let ((ls `(lambda-simple ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
+				(parse `(begin ,@(cddr sexp)))
+			(parse (caddr sexp))))))
+			(if (and (list? ls) (> (length ls) 2) (= (length (filter (lambda (item)item ) (cddr ls))) (length (cddr ls))))
+				ls
+			#f)))
 
-		((myLambdaOptional? sexp) `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
-			(parse `(begin ,@(cddr sexp)))
-		(parse (caddr sexp)))))			
-		((myLambdaVeriadic? sexp) `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
-			(parse `(begin ,@(cddr sexp)))
-		(parse (caddr sexp)))))
+			((myLambdaOptional? sexp) `(lambda-opt  ,(reverse (cdr (reverse (flatten (cadr sexp)))))  ,(car (reverse (flatten (cadr sexp)))) ,(if (> (length (cddr sexp)) 1)
+				(parse `(begin ,@(cddr sexp)))
+			(parse (caddr sexp)))))			
+			((myLambdaVeriadic? sexp) `(lambda-opt  ,(list) ,(cadr sexp) ,(if (> (length (cddr sexp)) 1)
+				(parse `(begin ,@(cddr sexp)))
+			(parse (caddr sexp)))))
 
 		((myDefine? sexp) 
 			(let ((varName (parse (cadr sexp)))
@@ -130,10 +134,12 @@
 	(else #f)))
 
 (define (myVar? exp)
+
 	(and (not (member exp reserved-words))
 	(symbol? exp)))
 
 (define (myCond? exp)
+
 	(cond ((if3? exp) #t)
 		((if2? exp) #t)
 	(else #f)))
@@ -212,7 +218,6 @@
 
 (define (myDefine? exp)
 		(and (list? exp) (eq? (length exp) 3) (eq? (car exp) 'define) (myVar? (cadr exp))));;Changed define - allowed nested defines in this assignment
-
 (define (myMITDefine? exp)
 	(and (list? exp)
 		(> (length exp) 2)
@@ -259,6 +264,7 @@
 	(fold-left (lambda (init exp) (and init (list? exp) (= (length exp) 2) (myVar? (car exp)))) #t (cadr exp))	 ))
 
 (define (myCond? exp)
+
 	(and (list? exp)
 		(> (length exp) 1)
 		(eq? (car exp) 'cond)
