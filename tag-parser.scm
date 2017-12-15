@@ -117,7 +117,7 @@
 				((eq? (length (cdr sexp)) 1)  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))))))
 				(else  (parse `(if ,(car (cadr sexp)) (begin ,@(cdr (cadr sexp))) (cond ,@(cddr sexp)))))
 			))
-		((myQQ? sexp) (display sexp) (let ((expend (expand-qq (cadr sexp))))
+		((myQQ? sexp)(let ((expend (expand-qq (cadr sexp))))
 		(parse expend)))
 	(else #f))
 )
